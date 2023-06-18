@@ -20,29 +20,21 @@ from pyzbar.pyzbar import decode
 ###### Defining the functions required ######
 
 ###########################################################
-
-# Function for moving forward 
 def move_forward(sim):
 	left_joint=sim.getObject('/left_joint')
 	right_joint=sim.getObject('/right_joint')
 	sim.setJointTargetVelocity(left_joint,1)
 	sim.setJointTargetVelocity(right_joint,1)
-	
-#  Function for turning right 
 def turn_right(sim):
 	left_joint=sim.getObject('/left_joint')
 	right_joint=sim.getObject('/right_joint')
 	sim.setJointTargetVelocity(left_joint,-0.5)
 	sim.setJointTargetVelocity(right_joint,0.5)
-	
-#  Function for turning left 
 def turn_left(sim):
 	left_joint=sim.getObject('/left_joint')
 	right_joint=sim.getObject('/right_joint')
 	sim.setJointTargetVelocity(left_joint,0.5)
 	sim.setJointTargetVelocity(right_joint,-0.5)
-	
-#  Function to stop the bot 
 def stop(sim):
 	left_joint=sim.getObject('/left_joint')
 	right_joint=sim.getObject('/right_joint')
@@ -59,8 +51,6 @@ def control_logic(sim):
 	sim.setJointTargetVelocity(right_joint,0)
 	white=np.array([255,255,255])
 	gray=np.array([154,154,154])
-	
-    # Initializing the vision sensor for line following and image processing
 	while True:
 		sensor_handle=sim.getObject("/vision_sensor")
 		img,x,y=sim.getVisionSensorCharImage(sensor_handle)
@@ -82,7 +72,6 @@ def control_logic(sim):
 		left=img[100,64]
 		right=img[100,448]
 		
-		# Navigating the bot around the arena 
 		move_forward(sim)
 		
 		if np.array_equal(left,white) and np.array_equal(right,gray):
@@ -94,11 +83,119 @@ def control_logic(sim):
 				sim.setJointTargetVelocity(left_joint,0.5)
 				sim.setJointTargetVelocity(right_joint,1)
 				
-##############################################################################################
+			
+		for c in contour:
+			turn_count+=1
+			if turn_count==1 or turn_count==3 or turn_count==7 :
+				stop(sim)
+				time.sleep(0.5)
+				move_forward(sim)
+				time.sleep(1.1)
+				stop(sim)
+				time.sleep(0.5)
+				if turn_count==3:
+					turn_right(sim)
+					time.sleep(0.5)
+				if turn_count==7:
+					turn_right(sim)
+					time.sleep(0.5)
+				
+				while True:
+					turn_right(sim)
+					sensor_handle=sim.getObject("/vision_sensor")
+					img,x,y=sim.getVisionSensorCharImage(sensor_handle)
+					img=np.frombuffer(img,dtype=np.uint8).reshape(y,x,3)
+					img = cv2.flip(cv2.cvtColor(img,cv2.COLOR_BGR2RGB),0)
+					left=img[100,64]
+					right=img[100,448]
+					if np.array_equal(left,gray) and np.array_equal(right,white):
+						while True:
+							sim.setJointTargetVelocity(left_joint,-0.25)
+							sim.setJointTargetVelocity(right_joint,0.5)
+							sensor_handle=sim.getObject("/vision_sensor")
+							img,x,y=sim.getVisionSensorCharImage(sensor_handle)
+							img=np.frombuffer(img,dtype=np.uint8).reshape(y,x,3)
+							img = cv2.flip(cv2.cvtColor(img,cv2.COLOR_BGR2RGB),0)
+							left=img[100,64]
+							right=img[100,448]
+							if np.array_equal(left,white) and np.array_equal(right,gray):
+								break
+						break
+							
+
+							
+
+						
+						
+					
+			elif turn_count==5:
+				time.sleep(0.5)
+				move_forward(sim)
+				time.sleep(1.5)
+				
+				
+			
+			else:
+				stop(sim)
+				time.sleep(0.5)
+				move_forward(sim)
+				time.sleep(1.1)
+				stop(sim)
+				time.sleep(0.5)
+				while True:
+				
+					turn_left(sim)
+					sensor_handle=sim.getObject("/vision_sensor")
+					img,x,y=sim.getVisionSensorCharImage(sensor_handle)
+					img=np.frombuffer(img,dtype=np.uint8).reshape(y,x,3)
+					img = cv2.flip(cv2.cvtColor(img,cv2.COLOR_BGR2RGB),0)
+					left=img[100,128]
+					right=img[100,384]
+					#print("left_turn",left,right)
+					if np.array_equal(left,white) and np.array_equal(right,gray):
+						while True:
+							sim.setJointTargetVelocity(left_joint,0.5)
+							sim.setJointTargetVelocity(right_joint,-0.25)
+							sensor_handle=sim.getObject("/vision_sensor")
+							img,x,y=sim.getVisionSensorCharImage(sensor_handle)
+							img=np.frombuffer(img,dtype=np.uint8).reshape(y,x,3)
+							img = cv2.flip(cv2.cvtColor(img,cv2.COLOR_BGR2RGB),0)
+							left=img[100,64]
+							right=img[100,448]
+							if np.array_equal(left,white) and np.array_equal(right,gray):
+								break
+						break
+		if turn_count==9:
+			stop(sim)
+			package_1=sim.getObject("/package_1")
+			package_2=sim.getObject("/package_2")
+			package_3=sim.getObject("/package_3")
+			arena=sim.getObject("/Arena")
+			dump_point= [0.1500,0.5750,0.0617]
+			sim.setObjectParent(package_1,arena,True)
+			sim.setObjectParent(package_2,arena,True)
+			sim.setObjectParent(package_3,arena,True)
+			sim.setObjectPosition(package_1,-1,dump_point)
+			sim.setObjectPosition(package_2,-1,dump_point)
+			sim.setObjectPosition(package_3,-1,dump_point)
+			
+                   
+				
+				
+		
+		    
+			break
+##########################################################################               
+			
+			
+				
+        
+				
+###############################################################
 
 ################## Main part of the code ######################
 
-if _name_ == "_main_":
+if __name__ == "__main__":
 	client = RemoteAPIClient()
 	sim = client.getObject('sim')	
 
